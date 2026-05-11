@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-primary: #2B6CB0;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F7FAFC;
+  --color-text: #1A202C;
+  --color-text-muted: #718096;
+  --color-border: #E2E8F0;
+  --font-sans: "Inter", "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+}
+
+.dark {
+  --color-primary: #6897BB;
+  --color-surface: #2B2B2B;
+  --color-surface-alt: #313335;
+  --color-text: #A9B7C6;
+  --color-text-muted: #808080;
+  --color-border: #3C3F41;
+}
+
+/* CodeMirror global overrides */
+.cm-editor {
+  height: 100%;
+}
+
+.cm-editor.cm-focused {
+  outline: none;
+}
+
+.cm-scroller {
+  font-family: var(--font-sans);
+}

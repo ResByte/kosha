@@ -1,0 +1,48 @@
+{
+  "name": "kosha",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.20.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "@tauri-apps/cli": "^2.10.0",
+    "@types/js-yaml": "^4.0.9",
+    "happy-dom": "^20.7.0",
+    "svelte": "^5.25.0",
+    "svelte-check": "^4.0.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/language-data": "^6.5.0",
+    "@codemirror/search": "^6.5.0",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.36.0",
+    "@lezer/highlight": "^1.2.3",
+    "@tauri-apps/api": "^2.5.0",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-shell": "^2.2.0",
+    "codemirror": "^6.0.1",
+    "js-yaml": "^4.1.1",
+    "katex": "^0.16.21"
+  }
+}
