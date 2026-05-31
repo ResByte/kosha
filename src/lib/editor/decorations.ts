@@ -20,7 +20,7 @@ import {
   WidgetType,
 } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
-import { Range, StateField, type EditorState, type Extension } from '@codemirror/state';
+import { type Range, StateField, type EditorState, type Extension } from '@codemirror/state';
 import { highlightTree, classHighlighter } from '@lezer/highlight';
 import { languages } from '@codemirror/language-data';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -51,7 +51,7 @@ class LinkWidget extends WidgetType {
   constructor(readonly text: string, readonly url: string) { super(); }
   eq(o: LinkWidget) { return o.text === this.text && o.url === this.url; }
   toDOM() {
-    const el = document.createElement('a');
+    const el = document.createElement('span');
     el.className = 'cm-link-widget';
     el.textContent = this.text;
     el.title = this.url;
@@ -228,7 +228,13 @@ interface TableData {
 
 class TableWidget extends WidgetType {
   constructor(readonly tableData: TableData) { super(); }
-  eq(o: TableWidget) { return JSON.stringify(o.tableData) === JSON.stringify(this.tableData); }
+  eq(o: TableWidget) {
+    const a = this.tableData, b = o.tableData;
+    return a.headers.length === b.headers.length &&
+      a.rows.length === b.rows.length &&
+      a.headers.every((h, i) => h === b.headers[i]) &&
+      a.rows.every((r, i) => r.length === b.rows[i].length && r.every((c, j) => c === b.rows[i][j]));
+  }
   toDOM() { return renderTableDOM(this.tableData); }
   ignoreEvent() { return true; }
 }
@@ -390,7 +396,12 @@ function buildBlockDecorations(state: EditorState): DecorationSet {
 const blockDecorationsField = StateField.define<DecorationSet>({
   create(state) { return buildBlockDecorations(state); },
   update(value, tr) {
-    if (tr.docChanged || tr.selection) return buildBlockDecorations(tr.state);
+    if (tr.docChanged) return buildBlockDecorations(tr.state);
+    if (tr.selection) {
+      const prevLine = tr.startState.doc.lineAt(tr.startState.selection.main.head).number;
+      const newLine = tr.state.doc.lineAt(tr.state.selection.main.head).number;
+      if (prevLine !== newLine) return buildBlockDecorations(tr.state);
+    }
     return value.map(tr.changes);
   },
   provide: (f) => EditorView.decorations.from(f),
@@ -406,8 +417,12 @@ function buildInlineDecorations(view: EditorView): DecorationSet {
   const { doc, selection } = view.state;
   const head = selection.main.head;
   const cursorLineNum = doc.lineAt(head).number;
+  const visFrom = view.visibleRanges[0]?.from ?? 0;
+  const visTo = view.visibleRanges[view.visibleRanges.length - 1]?.to ?? doc.length;
 
   syntaxTree(view.state).iterate({
+    from: visFrom,
+    to: visTo,
     enter(node) {
       const name = node.name;
 
@@ -525,23 +540,34 @@ function buildInlineDecorations(view: EditorView): DecorationSet {
 
   // Inline math $...$ (block $$...$$ is also inline-replace because KaTeX
   // renders inline; CodeMirror only treats `block: true` decorations as block).
-  const fullText = doc.toString();
-  const blockMathRe = /\$\$([\s\S]+?)\$\$/g;
+  // Only scan visible range to avoid full-document string allocation.
   const blockMathRanges: Array<[number, number]> = [];
   let m: RegExpExecArray | null;
-  while ((m = blockMathRe.exec(fullText)) !== null) {
-    const from = m.index;
-    const to = from + m[0].length;
-    blockMathRanges.push([from, to]);
-    if (cursorOutside(from, to, head)) {
-      ranges.push(
-        Decoration.replace({ widget: new MathWidget(m[1].trim(), true) }).range(from, to)
-      );
-    }
-  }
+  const blockMathRe = /\$\$([\s\S]+?)\$\$/g;
   const inlineMathRe = /(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g;
-  for (let lineNum = 1; lineNum <= doc.lines; lineNum++) {
+  const wikiRe = /\[\[([^\]]+)\]\]/g;
+
+  const visStartLine = doc.lineAt(visFrom).number;
+  const visEndLine = doc.lineAt(visTo).number;
+
+  // Scan visible lines only for block math, inline math, and wiki-links.
+  for (let lineNum = visStartLine; lineNum <= visEndLine; lineNum++) {
     const line = doc.line(lineNum);
+
+    // Block math (may span lines — capture opener line, regex across sliced text)
+    blockMathRe.lastIndex = 0;
+    while ((m = blockMathRe.exec(line.text)) !== null) {
+      const from = line.from + m.index;
+      const to = from + m[0].length;
+      blockMathRanges.push([from, to]);
+      if (cursorOutside(from, to, head)) {
+        ranges.push(
+          Decoration.replace({ widget: new MathWidget(m[1].trim(), true) }).range(from, to)
+        );
+      }
+    }
+
+    // Inline math — skip lines inside a block math range
     if (blockMathRanges.some(([a, b]) => line.from >= a && line.from < b)) continue;
     inlineMathRe.lastIndex = 0;
     while ((m = inlineMathRe.exec(line.text)) !== null) {
@@ -551,12 +577,8 @@ function buildInlineDecorations(view: EditorView): DecorationSet {
         ranges.push(Decoration.replace({ widget: new MathWidget(m[1], false) }).range(from, to));
       }
     }
-  }
 
-  // Wiki-links [[Name]]
-  const wikiRe = /\[\[([^\]]+)\]\]/g;
-  for (let i = 1; i <= doc.lines; i++) {
-    const line = doc.line(i);
+    // Wiki-links [[Name]]
     wikiRe.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = wikiRe.exec(line.text)) !== null) {
@@ -580,8 +602,12 @@ const inlineDecorationsPlugin = ViewPlugin.fromClass(
     decorations: DecorationSet;
     constructor(view: EditorView) { this.decorations = buildInlineDecorations(view); }
     update(update: ViewUpdate) {
-      if (update.docChanged || update.selectionSet || update.viewportChanged) {
+      if (update.docChanged || update.viewportChanged) {
         this.decorations = buildInlineDecorations(update.view);
+      } else if (update.selectionSet) {
+        const prevLine = update.startState.doc.lineAt(update.startState.selection.main.head).number;
+        const newLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+        if (prevLine !== newLine) this.decorations = buildInlineDecorations(update.view);
       }
     }
   },
@@ -659,8 +685,8 @@ export const decorationsTheme = EditorView.baseTheme({
     fontStyle: 'italic',
     marginLeft: '0',
   },
-  '&light .cm-blockquote': { backgroundColor: 'rgba(43, 108, 176, 0.04)' },
-  '&dark .cm-blockquote': { backgroundColor: 'rgba(99, 179, 237, 0.07)' },
+  '&light .cm-blockquote': { backgroundColor: 'rgba(155, 92, 21, 0.05)' },
+  '&dark .cm-blockquote': { backgroundColor: 'rgba(212, 168, 83, 0.07)' },
 
   // Links
   '.cm-link-widget': { color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer' },
@@ -684,8 +710,8 @@ export const decorationsTheme = EditorView.baseTheme({
   // Wiki-links
   '.cm-wiki-link': { borderRadius: '4px', padding: '1px 6px', fontSize: '0.9em', cursor: 'pointer', fontWeight: '500' },
   '.cm-wiki-link-exists': { color: 'var(--color-primary)' },
-  '&light .cm-wiki-link-exists': { backgroundColor: 'rgba(43, 108, 176, 0.12)', border: '1px solid rgba(43, 108, 176, 0.3)' },
-  '&dark .cm-wiki-link-exists': { backgroundColor: 'rgba(99, 179, 237, 0.15)', border: '1px solid rgba(99, 179, 237, 0.4)' },
+  '&light .cm-wiki-link-exists': { backgroundColor: 'rgba(155, 92, 21, 0.10)', border: '1px solid rgba(155, 92, 21, 0.3)' },
+  '&dark .cm-wiki-link-exists': { backgroundColor: 'rgba(212, 168, 83, 0.15)', border: '1px solid rgba(212, 168, 83, 0.4)' },
   '&light .cm-wiki-link-missing': { backgroundColor: 'rgba(229, 62, 62, 0.08)', color: '#E53E3E', border: '1px dashed rgba(229, 62, 62, 0.4)' },
   '&dark .cm-wiki-link-missing': { backgroundColor: 'rgba(252, 129, 129, 0.1)', color: '#FC8181', border: '1px dashed rgba(252, 129, 129, 0.5)' },
   '.cm-wiki-link:hover': { opacity: '0.8' },

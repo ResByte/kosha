@@ -4,7 +4,11 @@
 
 Kosha is a native macOS app for writing and organizing Markdown notes with **live in-place rendering** — type `# Heading`, the `#` hides and your text renders as a styled heading. Move your cursor back in and the syntax reappears for editing. No mode switching, no preview pane.
 
-![Kosha editor](https://placeholder.example/screenshot.png)
+| Light | Dark |
+|---|---|
+| ![Kosha light mode](screenshots/light.png) | ![Kosha dark mode](screenshots/dark.png) |
+
+**[⬇ Download Kosha 0.2.0 for macOS (Apple Silicon)](https://github.com/ResByte/kosha/releases/download/0.2.0/Kosha_0.2.0_aarch64.dmg)**
 
 ---
 
@@ -92,99 +96,57 @@ pnpm tauri build
 kosha/
 ├── src/
 │   ├── routes/
-│   │   ├── +layout.svelte       # Root layout: sidebar + keyboard shortcuts
-│   │   ├── +layout.ts           # SSR disabled (required for Tauri)
-│   │   └── +page.svelte         # Editor page: load/save, backlinks, status bar
+│   │   ├── +layout.svelte       # Shell layout, event listeners, theme persistence
+│   │   └── +page.svelte         # Editor page: load/save, shortcuts, templates
 │   └── lib/
 │       ├── components/
-│       │   ├── Editor.svelte    # CodeMirror 6 wrapper
-│       │   ├── Sidebar.svelte   # File tree, favorites, recent, tags
+│       │   ├── Sidebar.svelte   # File tree, favorites, recent, tags, trash
 │       │   ├── SearchModal.svelte
-│       │   ├── Backlinks.svelte
-│       │   └── StatusBar.svelte
+│       │   ├── StatusBar.svelte
+│       │   ├── TemplateModal.svelte
+│       │   └── ConflictModal.svelte
 │       ├── editor/
-│       │   ├── setup.ts         # CM6 extensions, theme/decoration compartments
-│       │   ├── wiki-links.ts    # [[wiki-link]] decoration
-│       │   ├── frontmatter-badge.ts
-│       │   └── decorations/
-│       │       ├── headings.ts
-│       │       ├── emphasis.ts
-│       │       ├── inline-code.ts
-│       │       ├── blockquotes.ts
-│       │       ├── links.ts
-│       │       ├── checkboxes.ts
-│       │       └── hr.ts
+│       │   ├── setup.ts         # CM6 editor factory, theme/decoration compartments
+│       │   ├── decorations.ts   # All live-preview decorations (block + inline)
+│       │   └── floating-toolbar.ts
 │       ├── stores/
 │       │   └── app.svelte.ts    # Global state (Svelte 5 $state runes)
-│       ├── frontmatter.ts       # gray-matter wrapper
+│       ├── frontmatter.ts       # YAML frontmatter parse/serialize
 │       └── tauri.ts             # Typed invoke() wrappers
 ├── src-tauri/
 │   └── src/
-│       ├── main.rs
-│       ├── lib.rs               # App setup, search commands
-│       ├── commands.rs          # File I/O, trash, settings, tags
-│       └── search.rs            # SQLite FTS5 index
-├── specs/                       # Product specification
-│   ├── SPEC.md
-│   ├── WEEK1.md  ✅
-│   ├── WEEK2.md
-│   ├── WEEK3.md
-│   └── WEEK4.md
-└── static/
-    └── favicon.png
+│       ├── lib.rs               # App entry, command registration, watcher startup
+│       ├── commands.rs          # File I/O, trash, settings, data dir management
+│       ├── search.rs            # SQLite FTS5 index (porter stemmer)
+│       ├── watcher.rs           # notify v7 file watcher
+│       └── import.rs            # Notion ZIP import
+└── screenshots/
 ```
 
 ---
 
-## Data Directory
+## Data Layout
 
-```
-~/.kosha-data/            # Dev (switches to iCloud in production)
-  .kosha/
-    settings.json         # Theme, favorites, editor preferences
-    search.db             # SQLite FTS5 index (rebuilt on each machine)
-  welcome/
-    Getting Started.md
-  your-folder/
-    your-note.md
-  .trash/                 # Soft-deleted notes (purged after 30 days)
-```
+| Path | Purpose |
+|---|---|
+| `~/.kosha/config.json` | Chosen notes directory (never synced) |
+| `~/.kosha/settings.json` | UI settings (theme, etc.) |
+| `~/.kosha/search.db` | SQLite FTS5 search index |
+| `~/kosha-data/` | Default notes directory (user-configurable) |
+| `<data-dir>/.trash/` | Soft-deleted notes (auto-purged after 30 days) |
 
 ### Note format
 
 ```markdown
 ---
 tags: [python, pandas]
-created: 2026-02-20T10:00:00Z
+created: 2026-05-30
 ---
 
 # Handling Missing Values
 
 Use `df.dropna()` or `df.fillna()` ...
 ```
-
----
-
-## Build Phases
-
-| Week | Scope | Status |
-|---|---|---|
-| **Week 1** | Editor core — Tauri + SvelteKit + CM6 + live preview + file I/O | ✅ Complete |
-| **Week 2** | Remaining decorations (math, images, tables, code blocks) + sidebar file tree | 🔲 Planned |
-| **Week 3** | Search + wiki-links + backlinks + tag panel | 🔲 Planned |
-| **Week 4** | Polish — dark theme, toolbar, trash, templates, iCloud conflict detection | 🔲 Planned |
-
----
-
-## Performance Targets
-
-| Metric | Target |
-|---|---|
-| Open a note | < 30 ms |
-| Decoration render per keystroke | < 16 ms (60 fps) |
-| Full-text search (5 k notes) | < 100 ms |
-| App cold start | < 1.5 s |
-| App bundle | < 8 MB |
 
 ---
 

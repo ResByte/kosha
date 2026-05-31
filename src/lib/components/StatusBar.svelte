@@ -29,8 +29,8 @@
       <span>{readingTime(words)}</span>
       <span
         class="px-1.5 py-0.5 rounded text-[10px] font-medium"
-        class:bg-blue-100={!app.sourceMode}
-        class:text-blue-700={!app.sourceMode}
+        class:bg-[var(--color-border)]={!app.sourceMode}
+        class:text-[var(--color-primary)]={!app.sourceMode}
         class:bg-gray-100={app.sourceMode}
         class:text-gray-600={app.sourceMode}
       >

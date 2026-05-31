@@ -202,8 +202,8 @@
         {#each app.favorites as fav}
           <button
             class="w-full flex items-center gap-1.5 px-3 py-1 truncate hover:bg-[var(--color-border)]"
-            class:bg-blue-50={isActive(fav)}
-            class:text-blue-700={isActive(fav)}
+            class:bg-[var(--color-border)]={isActive(fav)}
+            class:text-[var(--color-primary)]={isActive(fav)}
             onclick={() => openByPath(fav)}
           >
             <span class="text-yellow-400">★</span>
@@ -226,7 +226,7 @@
         {#each app.recentFiles.slice(0, 5) as recent}
           <button
             class="w-full flex items-center gap-1.5 px-3 py-1 truncate hover:bg-[var(--color-border)]"
-            class:bg-blue-50={isActive(recent)}
+            class:bg-[var(--color-border)]={isActive(recent)}
             onclick={() => openByPath(recent)}
           >
             <span class="text-[var(--color-text-muted)]">◷</span>
@@ -264,9 +264,9 @@
           {#each app.allTags as { tag, count }}
             <button
               class="px-2 py-0.5 rounded-full text-xs border"
-              class:bg-blue-100={app.activeTagFilter === tag}
-              class:border-blue-300={app.activeTagFilter === tag}
-              class:text-blue-700={app.activeTagFilter === tag}
+              class:bg-[var(--color-border)]={app.activeTagFilter === tag}
+              class:border-[var(--color-primary)]={app.activeTagFilter === tag}
+              class:text-[var(--color-primary)]={app.activeTagFilter === tag}
               class:border-[var(--color-border)]={app.activeTagFilter !== tag}
               class:text-[var(--color-text-muted)]={app.activeTagFilter !== tag}
               onclick={() => { app.activeTagFilter = app.activeTagFilter === tag ? null : tag; }}
@@ -291,7 +291,7 @@
     </span>
     <button
       onclick={async () => { const p = await pickFolder(); if (p) await changeDataDir(p); }}
-      class="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] hover:border-blue-400 hover:text-blue-600 text-[var(--color-text-muted)] transition"
+      class="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] text-[var(--color-text-muted)] transition"
       title="Change vault folder"
     >
       Change
@@ -311,7 +311,7 @@
   <div class="group flex items-center hover:bg-[var(--color-border)]" style="padding-left: {(depth + 1) * 12}px">
     <button
       class="flex-1 flex items-center gap-1.5 py-0.5 truncate min-w-0"
-      class:text-blue-700={!entry.is_dir && activeFile === entry.path}
+      class:text-[var(--color-primary)]={!entry.is_dir && activeFile === entry.path}
       onclick={() => open(entry)}
     >
       {#if entry.is_dir}
