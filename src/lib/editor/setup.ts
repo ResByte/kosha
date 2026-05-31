@@ -87,13 +87,16 @@ const darkTheme = EditorView.theme(
     '.cm-cursor': {
       borderLeftColor: 'var(--color-text)',
     },
-    // Darcula active line: #323232
     '.cm-activeLine': {
       backgroundColor: '#323232',
     },
-    // Darcula selection: blue #214283
     '.cm-selectionBackground': {
-      backgroundColor: 'rgba(33, 66, 131, 0.6) !important',
+      backgroundColor: '#214283 !important',
+    },
+    '.cm-gutters': {
+      backgroundColor: '#313335',
+      borderRight: '1px solid #3C3F41',
+      color: '#606366',
     },
   },
   { dark: true }

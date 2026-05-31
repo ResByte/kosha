@@ -14,11 +14,11 @@
 
 .dark {
   --color-primary: #D4A853;
-  --color-surface: #18161F;
-  --color-surface-alt: #201E29;
-  --color-text: #EDE3CA;
-  --color-text-muted: #8A8070;
-  --color-border: #2E2B3A;
+  --color-surface: #2B2B2B;
+  --color-surface-alt: #313335;
+  --color-text: #A9B7C6;
+  --color-text-muted: #808080;
+  --color-border: #3C3F41;
 }
 
 /* CodeMirror global overrides */

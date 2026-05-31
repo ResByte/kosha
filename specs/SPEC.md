@@ -1,7 +1,7 @@
 # Kosha — Technical Specification
 
 > **कोश** (Sanskrit: "treasury") — A minimal personal knowledge keeper for macOS.
-> Current release: **v0.2.0**
+> Current release: **v0.3.0**
 
 ---
 

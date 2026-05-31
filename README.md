@@ -8,7 +8,7 @@ Kosha is a native macOS app for writing and organizing Markdown notes with **liv
 |---|---|
 | ![Kosha light mode](screenshots/light.png) | ![Kosha dark mode](screenshots/dark.png) |
 
-**[⬇ Download Kosha 0.2.0 for macOS (Apple Silicon)](https://github.com/ResByte/kosha/releases/download/0.2.0/Kosha_0.2.0_aarch64.dmg)**
+**[⬇ Download Kosha 0.3.0 for macOS (Apple Silicon)](https://github.com/ResByte/kosha/releases/download/0.3.0/Kosha_0.3.0_aarch64.dmg)**
 
 ---
 
