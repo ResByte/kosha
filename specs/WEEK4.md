@@ -1,5 +1,6 @@
-# Week 4: Polish
+# Week 4: Polish ✅
 
+> **Status: Complete**
 > **Goal:** Your daily-driver personal knowledge keeper, synced across Macs via iCloud.
 
 > **Depends on:** Week 3 complete (search + wiki-links + backlinks + tags)

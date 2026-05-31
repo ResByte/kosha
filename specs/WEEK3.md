@@ -1,5 +1,6 @@
-# Week 3: Search + Links
+# Week 3: Search + Links ✅
 
+> **Status: Complete**
 > **Goal:** Find anything instantly. Navigate by links, tags, and search.
 
 > **Depends on:** Week 2 complete (all decorations + sidebar file tree)

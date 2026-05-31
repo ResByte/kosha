@@ -1,5 +1,6 @@
-# Week 1: Editor Core
+# Week 1: Editor Core ✅
 
+> **Status: Complete**
 > **Goal:** Edit Markdown files with live in-place rendering in a native macOS window.
 
 ---

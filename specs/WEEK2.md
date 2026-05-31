@@ -1,5 +1,6 @@
-# Week 2: Remaining Decorations + Navigation
+# Week 2: Remaining Decorations + Navigation ✅
 
+> **Status: Complete**
 > **Goal:** Full live-preview editor with all Markdown elements. Browse and create notes in folder tree.
 
 > **Depends on:** Week 1 complete (Tauri + SvelteKit + CM6 + basic decorations + file I/O)

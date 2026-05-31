@@ -1,31 +1,33 @@
-# Kosha — Project Specification
+# Kosha — Technical Specification
 
 > **कोश** (Sanskrit: "treasury") — A minimal personal knowledge keeper for macOS.
-
-## What You Are Building
-
-A native macOS desktop app for writing and organizing Markdown notes with **live in-place rendering** (Typora/Obsidian-style). Notes are plain `.md` files stored in iCloud Drive. No server, no database for content, no collaboration.
+> Current release: **v0.2.0**
 
 ---
 
-## Tech Stack (Pinned Versions)
+## Overview
 
-| Layer | Technology | Version | Notes |
-|---|---|---|---|
-| Desktop Shell | Tauri v2 | `^2.10` | Rust backend, ~5 MB bundle |
-| Frontend | Svelte 5 + SvelteKit | `svelte@^5.25`, `@sveltejs/kit@^2.20` | Compiler-based, no vDOM |
-| Language | TypeScript | `^5.x` | Strict mode |
-| Editor Engine | CodeMirror 6 | `@codemirror/*` latest | Framework-agnostic text editor |
-| Live Preview | codemirror-live-markdown | latest | Composable CM6 plugins for Obsidian-style inline rendering |
-| Math | KaTeX | `^0.16` | LaTeX rendering in editor widgets |
-| Code Highlighting | Lezer | Built into CM6 | No extra dependency |
-| CSS | TailwindCSS v4 | `^4.1` | Use `@tailwindcss/vite` plugin. CSS-first `@theme` config. |
-| State | Svelte `$state` runes | Built-in | No external state library |
-| Search | SQLite FTS5 via `rusqlite` | latest | In Tauri Rust backend |
-| File Watching | `notify` crate | latest | Detect iCloud changes |
-| Frontmatter | `gray-matter` | `^4.x` | YAML frontmatter parse/serialize |
-| SvelteKit Adapter | `@sveltejs/adapter-static` | latest | Static SPA for Tauri (SSR disabled) |
-| Package Manager | pnpm | latest | — |
+Kosha is a native macOS desktop app for writing and organizing Markdown notes with **live in-place rendering** (Obsidian-style). Notes are plain `.md` files stored anywhere on disk or in iCloud. No server, no proprietary format, no lock-in.
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| Desktop shell | [Tauri v2](https://tauri.app) | `^2.10` |
+| Frontend | [Svelte 5](https://svelte.dev) + SvelteKit | `svelte@^5`, `@sveltejs/kit@^2` |
+| Language | TypeScript (strict) | `^5.x` |
+| Editor | [CodeMirror 6](https://codemirror.net) | `@codemirror/*` latest |
+| Styling | TailwindCSS v4 | `^4.1` |
+| Math rendering | KaTeX | `^0.16` |
+| Search | SQLite FTS5 via `rusqlite` | latest |
+| File watching | `notify` crate | `7` |
+| Frontmatter | `js-yaml` | `^4.x` |
+| SvelteKit adapter | `@sveltejs/adapter-static` | latest |
+| Package manager | pnpm | latest |
+
+> All Markdown decorations are custom CM6 `StateField` / `ViewPlugin` implementations — no third-party live-preview library.
 
 ---
 
@@ -33,73 +35,66 @@ A native macOS desktop app for writing and organizing Markdown notes with **live
 
 ```
 kosha/
-  src-tauri/
-    Cargo.toml
-    tauri.conf.json
-    src/
-      main.rs                 # Window setup, menu, global shortcuts
-      commands.rs             # Tauri commands: read_file, write_file, list_dir, search
-      search.rs               # FTS5 index build + query
-      watcher.rs              # File watcher for iCloud changes
-  src/
-    routes/
-      +layout.svelte          # Root layout: sidebar + main area
-      +layout.ts              # export const ssr = false (required for Tauri)
-      +page.svelte            # Editor page
-    lib/
-      components/
-        Sidebar.svelte        # File tree, favorites, tags, recent
-        Editor.svelte         # CodeMirror 6 wrapper + plugin setup
-        SearchModal.svelte    # Cmd+K / Cmd+Shift+F overlay
-        Backlinks.svelte      # Backlinks panel below editor
-        Settings.svelte       # Theme, editor font/size
-      editor/
-        setup.ts              # CM6 extensions array: live-markdown plugins + custom decorations
-        custom-decorations.ts # Blockquotes, HR, tables (gaps not covered by live-markdown)
-        wiki-links.ts         # [[wiki-link]] decoration and click-to-navigate
-        frontmatter-badge.ts  # Collapsible metadata badge at top of note
-      stores/
-        app.svelte.ts         # Svelte $state runes: open file, sidebar state, search results
-      frontmatter.ts          # gray-matter wrapper: parse/serialize YAML frontmatter
-      tauri.ts                # Typed wrappers around Tauri invoke() calls
-    app.css                   # TailwindCSS v4: @import "tailwindcss"; @theme { ... }
-  svelte.config.js            # SvelteKit config with adapter-static
-  vite.config.ts              # Vite + @tailwindcss/vite plugin
-  package.json
+├── src/
+│   ├── routes/
+│   │   ├── +layout.svelte       # Shell: sidebar, event listeners, theme persistence
+│   │   ├── +layout.ts           # SSR disabled (required for Tauri)
+│   │   └── +page.svelte         # Editor: load/save, shortcuts, templates
+│   └── lib/
+│       ├── components/
+│       │   ├── Sidebar.svelte         # File tree, favorites, recent, tags, trash
+│       │   ├── SearchModal.svelte     # Cmd+K / Cmd+Shift+F overlay
+│       │   ├── StatusBar.svelte       # Word count, mode indicator
+│       │   ├── TemplateModal.svelte   # Template picker, {{date}} substitution
+│       │   ├── ConflictModal.svelte   # iCloud conflict resolution
+│       │   ├── SetupModal.svelte      # First-run data directory picker
+│       │   └── ChangeFolderModal.svelte
+│       ├── editor/
+│       │   ├── setup.ts         # CM6 editor factory, compartments, image drop
+│       │   ├── decorations.ts   # All live-preview decorations (block + inline)
+│       │   ├── floating-toolbar.ts   # Selection-triggered formatting bar
+│       │   └── context.ts       # dataDirPath reactive store for image resolution
+│       ├── stores/
+│       │   └── app.svelte.ts    # Global AppState class (Svelte 5 $state runes)
+│       ├── frontmatter.ts       # js-yaml parse/serialize, Date normalisation
+│       └── tauri.ts             # Typed wrappers around every invoke() call
+├── src-tauri/
+│   └── src/
+│       ├── lib.rs               # App entry, AppSearchIndex + WatcherState, command registration
+│       ├── commands.rs          # All file I/O commands, data_dir(), app_config_dir()
+│       ├── search.rs            # SQLite FTS5 index (porter stemmer), backlink lookup
+│       ├── watcher.rs           # notify v7 watcher, emits file-changed / icloud-conflict
+│       └── import.rs            # Notion ZIP + folder import
+├── screenshots/
+│   ├── light.png
+│   └── dark.png
+├── gen_icon.py                  # Icon generator (Pillow, 1024×1024)
+└── icon.png                     # Source icon (1024×1024)
 ```
 
 ---
 
-## Data Directory
+## Data Layout
 
-All user data lives in iCloud Drive:
+| Path | Purpose |
+|---|---|
+| `~/.kosha/config.json` | Chosen notes directory (never synced) |
+| `~/.kosha/settings.json` | UI settings (theme) |
+| `~/.kosha/search.db` | SQLite FTS5 index (rebuilt per machine) |
+| `~/kosha-data/` | Default notes directory (user-configurable) |
+| `~/Library/Mobile Documents/com~apple~CloudDocs/Kosha` | iCloud notes path |
+| `<data-dir>/.trash/` | Soft-deleted notes (auto-purged after 30 days) |
 
-```
-~/Library/Mobile Documents/com~kosha/
-  .kosha/                        # App config (LOCAL ONLY, not synced)
-    settings.json                # Preferences, theme, favorites list
-    search.db                    # FTS5 index (rebuilt from files on each machine)
-  work/                          # User folders (examples)
-  learning/
-  personal/
-  references/
-  templates/
-    daily-journal.md
-  .trash/                        # Soft-deleted notes (30-day retention)
-```
-
-The `.kosha/` directory should be excluded from iCloud sync (use `.nosync` suffix or store outside the iCloud container).
+In tests, `KOSHA_TEST_DATA_DIR` and `KOSHA_TEST_CONFIG_DIR` override these paths.
 
 ---
 
 ## Note Format
 
-Every note is a `.md` file with optional YAML frontmatter:
-
 ```markdown
 ---
 tags: [python, pandas]
-created: 2026-02-20T10:00:00Z
+created: 2026-05-30
 ---
 
 # Handling Missing Values
@@ -107,37 +102,62 @@ created: 2026-02-20T10:00:00Z
 Use `df.dropna()` or `df.fillna()` ...
 ```
 
-Frontmatter is parsed with `gray-matter`. Tags are arrays. `created` is ISO 8601.
+Frontmatter is parsed with `js-yaml`. Tags are arrays. `created` is `YYYY-MM-DD`.
 
 ---
 
-## Editor Behavior (Critical)
+## Editor Behavior
 
-The editor uses **in-place live rendering**. This is the core UX:
+**Live in-place rendering** — the core UX:
 
-1. User types `# Heading` → the `#` hides, text renders as a styled heading
-2. User clicks on that heading → the `#` reappears for editing
-3. User moves cursor away → the `#` hides again, heading style re-applies
+1. Type `# Heading` → the `#` hides, text renders as a styled heading
+2. Click on the heading → the `#` reappears for editing
+3. Move cursor away → the `#` hides again
 
-This applies to ALL Markdown elements: bold, italic, links, images, code blocks, math, checkboxes, etc.
+This applies to all Markdown elements. Implemented as custom CM6 decorations:
 
-**Implementation:** CodeMirror 6 with `codemirror-live-markdown` plugins provide this behavior. The library handles the cursor-in/cursor-out decoration toggling.
-
-| Markdown Element | Plugin Source |
+| Element | Decorator |
 |---|---|
-| Headings `#` | `codemirror-live-markdown` |
-| Bold/Italic/Strikethrough | `codemirror-live-markdown` |
-| Links `[text](url)` | `codemirror-live-markdown` |
-| Images `![alt](path)` | `codemirror-live-markdown` |
-| Code blocks `` ```lang `` | `codemirror-live-markdown` + Lezer |
-| Inline code `` `code` `` | `codemirror-live-markdown` |
-| Math `$...$` / `$$...$$` | `codemirror-live-markdown` (KaTeX) |
-| Checkboxes `- [ ]` | `codemirror-live-markdown` |
-| Blockquotes `>` | Custom CM6 decoration |
-| Horizontal rules `---` | Custom CM6 decoration |
-| Tables | Custom CM6 decoration |
-| `[[wiki-links]]` | Custom CM6 decoration |
-| Frontmatter badge | Custom CM6 decoration |
+| Headings | `inlineDecorationsPlugin` (ViewPlugin) |
+| Bold / Italic / Strikethrough | `inlineDecorationsPlugin` |
+| Inline code | `inlineDecorationsPlugin` |
+| Links | `inlineDecorationsPlugin` → `LinkWidget` (span) |
+| Images | `inlineDecorationsPlugin` → `ImageWidget` |
+| Checkboxes | `inlineDecorationsPlugin` → `CheckboxWidget` |
+| Horizontal rules | `inlineDecorationsPlugin` → `HRWidget` |
+| Inline math `$...$` | `inlineDecorationsPlugin` → `MathWidget` (KaTeX) |
+| Block math `$$...$$` | `inlineDecorationsPlugin` → `MathWidget` (KaTeX) |
+| Wiki-links `[[Name]]` | `inlineDecorationsPlugin` → `WikiLinkWidget` |
+| Blockquotes | `inlineDecorationsPlugin` (line class + hide `>`) |
+| Fenced code blocks | `blockDecorationsField` (StateField) → `CodeBlockWidget` |
+| Tables | `blockDecorationsField` (StateField) → `TableWidget` |
+| YAML frontmatter | `blockDecorationsField` (StateField) → `FrontmatterBadgeWidget` |
+
+Block decorations live in a `StateField` (CM6 requirement). Inline decorations live in a `ViewPlugin`. Both are viewport-bounded — only visible lines are processed.
+
+---
+
+## Performance Design
+
+- **Viewport-bounded decoration**: `syntaxTree().iterate()` is scoped to `visibleRanges`; math and wiki-link regex scans loop only over visible lines
+- **Line-change guards**: block and inline rebuilds only trigger when the cursor crosses a line boundary (not on every selection change)
+- **Fast widget equality**: `TableWidget.eq()` uses cell-by-cell comparison instead of `JSON.stringify`
+- **Auto-save**: 2-second debounce on content changes
+
+---
+
+## Color Scheme
+
+Derived from the app icon (indigo → amber gradient, cream K):
+
+| Token | Light | Dark |
+|---|---|---|
+| `--color-primary` | `#9B5C15` (amber) | `#D4A853` (gold) |
+| `--color-surface` | `#FFFDF8` (warm white) | `#18161F` (dark charcoal) |
+| `--color-surface-alt` | `#F7F0E4` (warm beige) | `#201E29` |
+| `--color-text` | `#1E1649` (deep indigo) | `#EDE3CA` (warm cream) |
+| `--color-text-muted` | `#6B587A` | `#8A8070` |
+| `--color-border` | `#E0D5C5` (warm tan) | `#2E2B3A` |
 
 ---
 
@@ -148,51 +168,27 @@ This applies to ALL Markdown elements: bold, italic, links, images, code blocks,
 | Quick switcher | `Cmd+K` |
 | Full-text search | `Cmd+Shift+F` |
 | New note | `Cmd+N` |
-| New note in current folder | `Cmd+Shift+N` |
+| New note from template | `Cmd+Shift+N` |
 | Toggle sidebar | `Cmd+B` |
-| Go back / forward | `Cmd+[ / Cmd+]` |
-| Find in current note | `Cmd+F` |
-| Toggle source/live mode | `Cmd+/` |
-| Toggle dark/light theme | `Cmd+Shift+T` |
+| Toggle source / live mode | `Cmd+/` |
+| Toggle dark / light theme | `Cmd+Shift+T` |
 | Manual save | `Cmd+S` |
 
 ---
 
-## Performance Targets
+## Adding a New Tauri Command
 
-| Metric | Target |
-|---|---|
-| Open a note | < 30ms |
-| Decoration render (per keystroke) | < 16ms (60fps) |
-| Full-text search (5k notes) | < 100ms |
-| App cold start | < 1.5s |
-| App bundle size | < 8 MB |
-| Frontend JS payload | < 5 KB gzipped (excl. CM6) |
-| Memory (idle) | < 100 MB |
-| Codebase | < 4,000 lines total |
+1. Add `#[tauri::command]` fn in `commands.rs` (or a new module)
+2. Register it in `tauri::generate_handler![…]` in `lib.rs`
+3. Add a typed wrapper in `src/lib/tauri.ts`
 
 ---
 
-## Build Phases
+## Scope Exclusions
 
-The project is built in 4 weekly phases. Each phase has its own spec file:
-
-- [`WEEK1.md`](./WEEK1.md) — Editor Core (Tauri + SvelteKit + CM6 + live preview + file I/O)
-- [`WEEK2.md`](./WEEK2.md) — Math, Images, Navigation (remaining decorations + sidebar file tree)
-- [`WEEK3.md`](./WEEK3.md) — Search + Links (FTS5 + quick switcher + wiki-links + backlinks)
-- [`WEEK4.md`](./WEEK4.md) — Polish (themes, toolbar, trash, templates, conflict detection)
-
-**Each phase must be shippable.** At the end of each week, the app should be usable for its stated purpose.
-
----
-
-## Scope Exclusions (Do NOT Build)
-
-- No split-pane editor, block editor, or rich text WYSIWYG
-- No databases, tables view, Kanban boards, task management
-- No AI, LLM, semantic search, embeddings
-- No reminders, recurring tasks, automations
-- No graph view (backlinks panel only)
-- No S3, self-hosted sync, CRDT, real-time collaboration
-- No plugins, extensions, scripting API
-- No Windows, Linux, iOS, Android, web app
+- No split-pane editor, block editor, or WYSIWYG
+- No databases, Kanban boards, or task management
+- No AI, semantic search, or embeddings
+- No real-time collaboration or self-hosted sync
+- No plugins or scripting API
+- No Windows, Linux, iOS, Android, or web
