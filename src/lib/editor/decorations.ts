@@ -316,15 +316,16 @@ function findInnerNode(parent: { from: number; node: { toTree(): { iterate(spec:
   return found;
 }
 
-function noteExists(name: string): boolean {
-  function searchTree(entries: typeof app.fileTree): boolean {
+function buildFileSet(): Set<string> {
+  const set = new Set<string>();
+  function collect(entries: typeof app.fileTree) {
     for (const e of entries) {
-      if (!e.is_dir && e.name.replace(/\.md$/, '') === name) return true;
-      if (e.children && searchTree(e.children)) return true;
+      if (!e.is_dir) set.add(e.name.replace(/\.md$/, ''));
+      if (e.children) collect(e.children);
     }
-    return false;
   }
-  return searchTree(app.fileTree);
+  collect(app.fileTree);
+  return set;
 }
 
 // ─── Block decorations (StateField — CodeMirror requires this) ──────────────
@@ -549,6 +550,7 @@ function buildInlineDecorations(view: EditorView): DecorationSet {
 
   const visStartLine = doc.lineAt(visFrom).number;
   const visEndLine = doc.lineAt(visTo).number;
+  const fileSet = buildFileSet();
 
   // Scan visible lines only for block math, inline math, and wiki-links.
   for (let lineNum = visStartLine; lineNum <= visEndLine; lineNum++) {
@@ -587,7 +589,7 @@ function buildInlineDecorations(view: EditorView): DecorationSet {
       if (cursorOutside(from, to, head)) {
         const linkName = match[1];
         ranges.push(
-          Decoration.replace({ widget: new WikiLinkWidget(linkName, noteExists(linkName)) })
+          Decoration.replace({ widget: new WikiLinkWidget(linkName, fileSet.has(linkName)) })
             .range(from, to)
         );
       }

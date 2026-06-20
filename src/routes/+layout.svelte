@@ -12,6 +12,7 @@
   let { children } = $props();
 
   let conflictPath = $state<string | null>(null);
+  let fileChangedTimer: ReturnType<typeof setTimeout>;
 
   onMount(async () => {
     // Load the current data dir into store
@@ -19,22 +20,26 @@
     app.dataDir = dir;
     if (dir) setDataDirPath(dir);
 
-    // Listen for external file changes (from file watcher)
-    listen<string>('file-changed', async (event) => {
-      const changedPath = event.payload;
-      // Skip hidden / trash paths
-      if (changedPath.startsWith('.')) return;
-      // Refresh file tree
-      app.fileTree = await listDir().catch(() => app.fileTree);
-      // Keep search index in sync with externally created/modified files
-      if (changedPath.endsWith('.md')) {
-        updateSearchIndex(changedPath).catch(() => {});
-      }
-      // Reload content if the currently open file changed externally
-      if (changedPath === app.currentFile && !app.isDirty) {
-        const content = await readFile(changedPath).catch(() => null);
-        if (content !== null) app.fileContent = content;
-      }
+    // Listen for external file changes (from file watcher) — debounced 300 ms
+    // so rapid auto-saves don't cause cascading tree refreshes.
+    listen<string>('file-changed', (event) => {
+      clearTimeout(fileChangedTimer);
+      fileChangedTimer = setTimeout(async () => {
+        const changedPath = event.payload;
+        // Skip hidden / trash paths
+        if (changedPath.startsWith('.')) return;
+        // Refresh file tree
+        app.fileTree = await listDir().catch(() => app.fileTree);
+        // Keep search index in sync with externally created/modified files
+        if (changedPath.endsWith('.md')) {
+          updateSearchIndex(changedPath).catch(() => {});
+        }
+        // Reload content if the currently open file changed externally
+        if (changedPath === app.currentFile && !app.isDirty) {
+          const content = await readFile(changedPath).catch(() => null);
+          if (content !== null) app.fileContent = content;
+        }
+      }, 300);
     });
 
     listen<string>('icloud-conflict', (event) => {

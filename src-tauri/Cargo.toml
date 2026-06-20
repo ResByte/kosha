@@ -34,3 +34,10 @@ tempfile = "3"
 # This feature is used for production builds or when a dev server is not specified,
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+opt-level     = "z"
+lto           = "thin"
+codegen-units = 1
+panic         = "abort"
+strip         = true
