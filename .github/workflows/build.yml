@@ -1,0 +1,96 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install JS dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm tauri build
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kosha-linux-x86_64.AppImage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kosha-linux-x86_64.deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install JS dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm tauri build
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kosha-macos-aarch64.dmg
+          path: src-tauri/target/release/bundle/dmg/*.dmg
